@@ -242,7 +242,7 @@ end)
 
 -- delete train
 RegisterCommand('deletetrain', function()
-	if Job == Config.Job then
+	if PlayerJob == Config.Job then
 		DeleteEntity(CURRENT_TRAIN)
 		trainspawned = false
 		trainrunning = false
@@ -251,7 +251,7 @@ end)
 
 -- reset train
 RegisterCommand('resettrain', function()
-	if Job == Config.Job then
+	if PlayerJob == Config.Job then
 		DeleteEntity(CURRENT_TRAIN)
 		trainspawned = false
 		trainrunning = false
