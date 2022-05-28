@@ -1,100 +1,185 @@
+--######################### edit for VORP by: outsider ########################
+local prompts = GetRandomIntInRange(0, 0xffffff)
+local openmenu
+local inmenu = false
+local stops = Config.Stops
+CURRENT_TRAIN = nil
+local trainspawned = false
+local trainrunning = false
+local npcs = {}
+MenuData = {}
+local PlayerJob
+
+TriggerEvent("menuapi:getData", function(call)
+	MenuData = call
+end)
+
+AddEventHandler('menuapi:closemenu', function()
+	if inmenu then
+		inmenu = false
+	end
+end)
+
+function InsertNpcs()
+	for z, x in pairs(Config.RailroadNpc) do
+		while not HasModelLoaded(GetHashKey(Config.RailroadNpc[z]["Model"])) do
+			Wait(500)
+			Modelrequest(GetHashKey(Config.RailroadNpc[z]["Model"]))
+		end
+		local npc = CreatePed(GetHashKey(Config.RailroadNpc[z]["Model"]), Config.RailroadNpc[z]["Pos"].x, Config.RailroadNpc[z]["Pos"].y, Config.RailroadNpc[z]["Pos"].z, Config.RailroadNpc[z]["Heading"], false, false, 0, 0)
+		while not DoesEntityExist(npc) do
+			Wait(300)
+		end
+		Citizen.InvokeNative(0x283978A15512B2FE, npc, true)
+		FreezeEntityPosition(npc, false)
+		SetEntityInvincible(npc, true)
+		TaskStandStill(npc, -1)
+		Wait(100)
+		SET_PED_RELATIONSHIP_GROUP_HASH(npc, GetHashKey(Config.RailroadNpc[z]["Model"]))
+		SetEntityCanBeDamagedByRelationshipGroup(npc, false, GetHashKey("PLAYER"))
+		SetEntityAsMissionEntity(npc, true, true)
+		SetModelAsNoLongerNeeded(GetHashKey(Config.RailroadNpc[z]["Model"]))
+		table.insert(npcs, { npc = npc, coords = x.Pos })
+	end
+end
+
+Citizen.CreateThread(function()
+	Citizen.Wait(5000)
+	local str = Press
+	openmenu = PromptRegisterBegin()
+	PromptSetControlAction(openmenu, 0x760A9C6F) -- G
+	str = CreateVarString(10, 'LITERAL_STRING', str)
+	PromptSetText(openmenu, str)
+	PromptSetEnabled(openmenu, 1)
+	PromptSetVisible(openmenu, 1)
+	PromptSetStandardMode(openmenu, 1)
+	PromptSetHoldMode(openmenu, 1)
+	PromptSetGroup(openmenu, prompts)
+	Citizen.InvokeNative(0xC5F428EE08FA7F2C, openmenu, true)
+	PromptRegisterEnd(openmenu)
+end)
 
 
 
 Citizen.CreateThread(function()
-	exports['qbr-core']:createPrompt('valentine-station', vector3(-162.8994, 638.43988, 114.03205), 0xF3830D8E, 'Railroad Menu', {
-		type = 'client',
-		event = 'rsg_railroadjob:client:menu',
-		args = {}
-	})  
-end)
+	InsertNpcs()
+	while true do
+		Citizen.Wait(0)
 
--- railroad menu
-RegisterNetEvent('rsg_railroadjob:client:menu', function(data)
-    exports['qbr-menu']:openMenu({
-        {
-            header = "| Railroad Menu |",
-            isMenuHeader = true,
-        },
-        {
-            header = "🚂 | Activate Train",
-            txt = "spawn train to start work",
-            params = {
-                event = 'rsg_railroadjob:client:spawntrain',
-				isServer = false,
-				args = { trainHash = 987516329 }
-            }
-        },
-        {
-            header = "Close Menu",
-            txt = '',
-            params = {
-                event = 'qbr-menu:closeMenu',
-            }
-        },
-    })
-end)
+		local player = PlayerPedId()
+		local sleep = true
+		local playercoords = GetEntityCoords(player)
 
-local stops = {
-    {["dst"] = 180.0, ["dst2"] = 4.0, ["x"] = -142.67,  ["y"] = 654.18,   ["z"] = 113.52, ["time"] = 60000, ["name"] = "Valentine Station"},
-    {["dst"] = 400.0, ["dst2"] = 4.0, ["x"] = 2685.39,  ["y"] = -1480.33, ["z"] = 45.80,  ["time"] = 60000, ["name"] = "Saint Denis Station"},
-    {["dst"] = 220.0, ["dst2"] = 4.0, ["x"] = 1197.48,  ["y"] = -1282.29, ["z"] = 76.45,  ["time"] = 60000, ["name"] = "Rhodes Station"},
-    {["dst"] = 220.0, ["dst2"] = 4.0, ["x"] = -379.38,  ["y"] = -369.51,  ["z"] = 86.44,  ["time"] = 30000, ["name"] = "Flatneck Station"},
-    {["dst"] = 180.0, ["dst2"] = 4.0, ["x"] = -1118.27, ["y"] = -567.17,  ["z"] = 82.67,  ["time"] = 30000, ["name"] = "Riggs Station"},
-    {["dst"] = 180.0, ["dst2"] = 4.0, ["x"] = -1291.04, ["y"] = 440.69,   ["z"] = 94.36,  ["time"] = 30000, ["name"] = "Wallace Station"},
-    {["dst"] = 180.0, ["dst2"] = 4.0, ["x"] = 610.54,   ["y"] = 1661.53,  ["z"] = 188.0,  ["time"] = 30000, ["name"] = "Bacchus Station"},
-    {["dst"] = 220.0, ["dst2"] = 4.0, ["x"] = 2914.50,  ["y"] = 1238.53,  ["z"] = 44.73,  ["time"] = 60000, ["name"] = "Annesburg Station"},
-    {["dst"] = 180.0, ["dst2"] = 4.0, ["x"] = 2879.30,  ["y"] = 592.75,   ["z"] = 57.84,  ["time"] = 60000, ["name"] = "Van Horn Tradin Post"}
-} 
 
-CURRENT_TRAIN = nil
-train = nil
-local trainspawned = false
-local trainrunning = false
+		if not inmenu then
+			TriggerServerEvent("get:PlayerJob") -- run client side check before check for distance. no need to run code that is not meant for the client its optimized this way
+			if PlayerJob == Config.Job then
+				local dist = Vdist2(playercoords, Config.Location, true) --location
+				if 2.0 > dist then
+					sleep = false
+					local label = CreateVarString(10, 'LITERAL_STRING', TrainPrompt)
+					PromptSetActiveGroupThisFrame(prompts, label)
+					if Citizen.InvokeNative(0xC92AC953F0A982AE, openmenu) then
+						inmenu = true
+						--TriggerServerEvent("get:PlayerJob")
+						TrainMenu()
 
-RegisterNetEvent('rsg_railroadjob:client:spawntrain')
-AddEventHandler('rsg_railroadjob:client:spawntrain', function(data)
-	PlayerJob = exports['qbr-core']:GetPlayerData().job.name
-	print(PlayerJob)
-	if PlayerJob == 'railroad' then
-		if trainspawned == false then
-			SetRandomTrains(false)
-			--requestmodel--
-			local trainWagons = N_0x635423d55ca84fc8(data.trainHash)
-			for wagonIndex = 0, trainWagons - 1 do
-				local trainWagonModel = N_0x8df5f6a19f99f0d5(data.trainHash, wagonIndex)
-				while not HasModelLoaded(trainWagonModel) do
-					Citizen.InvokeNative(0xFA28FE3A6246FC30, trainWagonModel, 1)
-					Citizen.Wait(100)
+					end
 				end
 			end
-			--spawn train--
-			local train = N_0xc239dbd9a57d2a71(data.trainHash, GetEntityCoords(PlayerPedId()), 0, 1, 1, 1)
-			SetTrainSpeed(train, 0.0)
-			local coords = GetEntityCoords(train)
-			local trainV = vector3(coords.x, coords.y, coords.z)
-			-- warp ped into train (valentine)
-			DoScreenFadeOut(500)
-			Wait(1000)
-			Citizen.InvokeNative(0x203BEFFDBE12E96A, PlayerPedId(), -167.4587, 622.33398, 114.6397 -1, 141.77737)
-			Wait(1000)
-			DoScreenFadeIn(500)
-			SetModelAsNoLongerNeeded(train)
-			--blip--
-			local blipname = "Train"
-			local bliphash = -399496385
-			local blip = Citizen.InvokeNative(0x23f74c2fda6e7c61, bliphash, train) -- blip for train
-			SetBlipScale(blip, 1.5)
-			CURRENT_TRAIN = train
-			trainspawned = true
-			trainrunning = true
-		else
-			exports['rsg_notify']:DisplayNotification('train is already out, check map!', 5000)
 		end
-	else
-		exports['rsg_notify']:DisplayNotification('you do not work for the railroad!', 5000)
+		if sleep then
+			Citizen.Wait(500)
+		end
 	end
 end)
+
+function TrainMenu()
+	MenuData.CloseAll()
+	local elements = Config.Elements
+
+	MenuData.Open('default', GetCurrentResourceName(), 'menuapi',
+		{
+			title    = MenuTittle,
+			subtext  = MenuSubTittle,
+			align    = 'top-left',
+			elements = elements,
+		},
+
+		function(data, menu)
+			if (data.current.value == 'hash1') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash2') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash4') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash5') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash6') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash7') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash8') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash9') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash10') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash11') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash12') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash13') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash14') then
+				StartTrain(data.current.info)
+			end
+		end,
+
+
+		function(data, menu)
+			menu.close()
+
+		end)
+end
+
+function StartTrain(hash)
+
+	if trainspawned == false then
+		SetRandomTrains(false)
+		--requestmodel--
+		local trainWagons = N_0x635423d55ca84fc8(hash)
+		for wagonIndex = 0, trainWagons - 1 do
+			local trainWagonModel = N_0x8df5f6a19f99f0d5(hash, wagonIndex)
+			while not HasModelLoaded(trainWagonModel) do
+				Citizen.InvokeNative(0xFA28FE3A6246FC30, trainWagonModel, 1)
+				Citizen.Wait(100)
+			end
+		end
+		--spawn train--
+		local train = N_0xc239dbd9a57d2a71(hash, GetEntityCoords(PlayerPedId()), 0, 1, 1, 1)
+		SetTrainSpeed(train, 0.0)
+		local coords = GetEntityCoords(train)
+		local trainV = vector3(coords.x, coords.y, coords.z)
+		-- warp ped into train (valentine)
+		DoScreenFadeOut(500)
+		Wait(1000)
+		Citizen.InvokeNative(0x203BEFFDBE12E96A, PlayerPedId(), -167.4587, 622.33398, 114.6397 - 1, 141.77737)
+		Wait(1000)
+		DoScreenFadeIn(500)
+		SetModelAsNoLongerNeeded(train)
+		--blip--
+		local bliphash = -399496385
+		local blip = Citizen.InvokeNative(0x23f74c2fda6e7c61, bliphash, train) -- blip for train
+		SetBlipScale(blip, 1.5)
+		CURRENT_TRAIN = train
+		trainspawned = true
+		trainrunning = true
+	else
+		TriggerEvent("vorp:TipRight", "train is already out, check map!", 3000)
+	end
+
+end
 
 Citizen.CreateThread(function()
 	while true do
@@ -104,11 +189,12 @@ Citizen.CreateThread(function()
 				local coords = GetEntityCoords(CURRENT_TRAIN)
 				local trainV = vector3(coords.x, coords.y, coords.z)
 				local distance = #(vector3(stops[i]["x"], stops[i]["y"], stops[i]["z"]) - trainV)
-		
+
 				--speed--
 				local stopspeed = 0.0
 				local cruisespeed = 5.0
 				local fullspeed = 15.0
+
 				if distance < stops[i]["dst"] then
 					SetTrainCruiseSpeed(CURRENT_TRAIN, cruisespeed)
 					Wait(200)
@@ -126,24 +212,53 @@ Citizen.CreateThread(function()
 				end
 			end
 		end
-    end
+	end
+end)
+
+RegisterNetEvent("send:PlayerJob")
+AddEventHandler("send:PlayerJob", function(Job)
+	PlayerJob = Job
+
+end)
+-- delete all
+AddEventHandler("onResourceStop", function(resourceName)
+	if resourceName == GetCurrentResourceName() then
+		if inmenu == true then
+			PromptDelete(openmenu) -- delete prompt
+			MenuData.CloseAll() --close menu
+		end
+
+		for _, v in pairs(npcs) do
+			DeleteEntity(v.npc)
+			DeletePed(v.npc)
+			SetEntityAsNoLongerNeeded(v.npc)
+		end
+
+		DeleteEntity(CURRENT_TRAIN) --delete train
+		trainspawned = false
+		trainrunning = false
+	end
 end)
 
 -- delete train
 RegisterCommand('deletetrain', function()
-    DeleteEntity(CURRENT_TRAIN)
-	trainspawned = false
-	trainrunning = false
+	if Job == Config.Job then
+		DeleteEntity(CURRENT_TRAIN)
+		trainspawned = false
+		trainrunning = false
+	end
 end)
 
 -- reset train
 RegisterCommand('resettrain', function()
-    DeleteEntity(CURRENT_TRAIN)
-	trainspawned = false
-	trainrunning = false
-	DoScreenFadeOut(500)
-	Wait(1000)
-	Citizen.InvokeNative(0x203BEFFDBE12E96A, PlayerPedId(), -163.1477, 637.15832, 114.03209 -1, 337.03866)
-	Wait(1000)
-	DoScreenFadeIn(500)
+	if Job == Config.Job then
+		DeleteEntity(CURRENT_TRAIN)
+		trainspawned = false
+		trainrunning = false
+		DoScreenFadeOut(500)
+		Wait(1000)
+		Citizen.InvokeNative(0x203BEFFDBE12E96A, PlayerPedId(), -163.1477, 637.15832, 114.03209 - 1, 337.03866) --tp back to valentine
+		Wait(1000)
+		DoScreenFadeIn(500)
+	end
 end)
