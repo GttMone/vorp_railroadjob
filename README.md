@@ -15,7 +15,7 @@
 - use /command while in the drivers seat : /resettrain (this deletes the train and teleports your to valentine)
 
 # Dependencies
--- menuapi
+- menuapi
 
 # Installation
 - ensure the above dependancies are installed and started
