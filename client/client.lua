@@ -106,10 +106,12 @@ function TrainMenu()
 			elements = elements,
 		},
 
-		function(data, menu)
+			function(data, menu)
 			if (data.current.value == 'hash1') then
 				StartTrain(data.current.info)
 			elseif (data.current.value == 'hash2') then
+				StartTrain(data.current.info)
+			elseif (data.current.value == 'hash3') then
 				StartTrain(data.current.info)
 			elseif (data.current.value == 'hash4') then
 				StartTrain(data.current.info)
@@ -134,6 +136,7 @@ function TrainMenu()
 			elseif (data.current.value == 'hash14') then
 				StartTrain(data.current.info)
 			end
+		
 		end,
 
 
