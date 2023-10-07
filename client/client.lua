@@ -72,21 +72,22 @@ Citizen.CreateThread(function()
 
 
 		if not inmenu then
-			TriggerServerEvent("get:PlayerJob") -- run client side check before check for distance. no need to run code that is not meant for the client its optimized this way
-			if PlayerJob == Config.Job then
+		
 				local dist = Vdist2(playercoords, Config.Location, true) --location
 				if 2.0 > dist then
 					sleep = false
 					local label = CreateVarString(10, 'LITERAL_STRING', TrainPrompt)
 					PromptSetActiveGroupThisFrame(prompts, label)
 					if Citizen.InvokeNative(0xC92AC953F0A982AE, openmenu) then
-						inmenu = true
-						--TriggerServerEvent("get:PlayerJob")
-						TrainMenu()
-
+						 TriggerServerEvent("get:PlayerJob") 
+                                                 Wait(200)
+						if PlayerJob == Config.Job then
+						   inmenu = true
+						   TrainMenu()
+						end
 					end
 				end
-			end
+			
 		end
 		if sleep then
 			Citizen.Wait(500)
