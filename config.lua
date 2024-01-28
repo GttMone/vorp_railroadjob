@@ -6,7 +6,6 @@ Config = {}
 -- DONT ADD MORE >>> only replace ^^^^^ in that link you find more
 -- replace only the hash number
 Config = {
-	Job = "police", -- the only job to open train menu
 	trainmodel1 = 987516329,
 	trainmodel2 = 0x515E31ED,
 	trainmodel3 = 0x487B2BE7,
@@ -22,6 +21,8 @@ Config = {
 	trainmodel13 = 0xC75AA08C,
 	trainmodel14 = 0x0392C83A,
 }
+Config.Job = "police" -- This job can open the train menu. Set to 'false' to allow anyone to open the menu.
+Config.TrainFullspeed = 15
 Config.Location = vector3(-162.8994, 638.43988, 114.03205) -- location of the menu
 
 --- train stations where the train stops
@@ -76,3 +77,4 @@ Press = "Press"
 TrainPrompt = "Valentine Conductor"
 MenuTittle = "RAIL ROAD"
 MenuSubTittle = "Valentine"
+JobMissing = "You lack the required job!"

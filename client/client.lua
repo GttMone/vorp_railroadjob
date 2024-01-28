@@ -1,4 +1,5 @@
---######################### edit for VORP by: outsider ########################
+--######################### edit for VORP by: outsider & GttMone ########################
+
 local prompts = GetRandomIntInRange(0, 0xffffff)
 local openmenu
 local inmenu = false
@@ -10,11 +11,17 @@ local npcs = {}
 MenuData = {}
 local PlayerJob
 
-TriggerEvent("menuapi:getData", function(call)
+-- Job Updating
+RegisterNetEvent('vorp_railroadjob:client:UpdateJob', function(Job)
+	PlayerJob = Job
+end)
+
+-- Menu
+TriggerEvent('vorp_menu:getData', function(call)
 	MenuData = call
 end)
 
-AddEventHandler('menuapi:closemenu', function()
+AddEventHandler('vorp_menu:closemenu', function()
 	if inmenu then
 		inmenu = false
 	end
@@ -22,11 +29,13 @@ end)
 
 function InsertNpcs()
 	for z, x in pairs(Config.RailroadNpc) do
-		while not HasModelLoaded(GetHashKey(Config.RailroadNpc[z]["Model"])) do
+		while not HasModelLoaded(GetHashKey(Config.RailroadNpc[z]['Model'])) do
 			Wait(500)
-			Modelrequest(GetHashKey(Config.RailroadNpc[z]["Model"]))
+			Modelrequest(GetHashKey(Config.RailroadNpc[z]['Model']))
 		end
-		local npc = CreatePed(GetHashKey(Config.RailroadNpc[z]["Model"]), Config.RailroadNpc[z]["Pos"].x, Config.RailroadNpc[z]["Pos"].y, Config.RailroadNpc[z]["Pos"].z, Config.RailroadNpc[z]["Heading"], false, false, 0, 0)
+		local npc = CreatePed(GetHashKey(Config.RailroadNpc[z]['Model']), Config.RailroadNpc[z]['Pos'].x,
+			Config.RailroadNpc[z]['Pos'].y, Config.RailroadNpc[z]['Pos'].z, Config.RailroadNpc[z]['Heading'], false,
+			false, 0, 0)
 		while not DoesEntityExist(npc) do
 			Wait(300)
 		end
@@ -35,10 +44,10 @@ function InsertNpcs()
 		SetEntityInvincible(npc, true)
 		TaskStandStill(npc, -1)
 		Wait(100)
-		SET_PED_RELATIONSHIP_GROUP_HASH(npc, GetHashKey(Config.RailroadNpc[z]["Model"]))
-		SetEntityCanBeDamagedByRelationshipGroup(npc, false, GetHashKey("PLAYER"))
+		SET_PED_RELATIONSHIP_GROUP_HASH(npc, GetHashKey(Config.RailroadNpc[z]['Model']))
+		SetEntityCanBeDamagedByRelationshipGroup(npc, false, GetHashKey('PLAYER'))
 		SetEntityAsMissionEntity(npc, true, true)
-		SetModelAsNoLongerNeeded(GetHashKey(Config.RailroadNpc[z]["Model"]))
+		SetModelAsNoLongerNeeded(GetHashKey(Config.RailroadNpc[z]['Model']))
 		table.insert(npcs, { npc = npc, coords = x.Pos })
 	end
 end
@@ -72,22 +81,25 @@ Citizen.CreateThread(function()
 
 
 		if not inmenu then
-		
-				local dist = Vdist2(playercoords, Config.Location, true) --location
-				if 2.0 > dist then
-					sleep = false
-					local label = CreateVarString(10, 'LITERAL_STRING', TrainPrompt)
-					PromptSetActiveGroupThisFrame(prompts, label)
-					if Citizen.InvokeNative(0xC92AC953F0A982AE, openmenu) then
-						 TriggerServerEvent("get:PlayerJob") 
-                                                 Wait(200)
+			local dist = Vdist2(playercoords, Config.Location, true) --location
+			if 2.0 > dist then
+				sleep = false
+				local label = CreateVarString(10, 'LITERAL_STRING', TrainPrompt)
+				PromptSetActiveGroupThisFrame(prompts, label)
+				if Citizen.InvokeNative(0xC92AC953F0A982AE, openmenu) then
+					if Config.Job then
 						if PlayerJob == Config.Job then
-						   inmenu = true
-						   TrainMenu()
+							inmenu = true
+							TrainMenu()
+						else
+							TriggerEvent("vorp:Tip", JobMissing, 3000);
 						end
+					else
+						inmenu = true
+						TrainMenu()
 					end
 				end
-			
+			end
 		end
 		if sleep then
 			Citizen.Wait(500)
@@ -99,7 +111,7 @@ function TrainMenu()
 	MenuData.CloseAll()
 	local elements = Config.Elements
 
-	MenuData.Open('default', GetCurrentResourceName(), 'menuapi',
+	MenuData.Open('default', GetCurrentResourceName(), 'vorp_menu_OpenMenu',
 		{
 			title    = MenuTittle,
 			subtext  = MenuSubTittle,
@@ -107,7 +119,7 @@ function TrainMenu()
 			elements = elements,
 		},
 
-			function(data, menu)
+		function(data, menu)
 			if (data.current.value == 'hash1') then
 				StartTrain(data.current.info)
 			elseif (data.current.value == 'hash2') then
@@ -137,18 +149,15 @@ function TrainMenu()
 			elseif (data.current.value == 'hash14') then
 				StartTrain(data.current.info)
 			end
-		
 		end,
 
 
 		function(data, menu)
 			menu.close()
-
 		end)
 end
 
 function StartTrain(hash)
-
 	if trainspawned == false then
 		SetRandomTrains(false)
 		--requestmodel--
@@ -180,9 +189,8 @@ function StartTrain(hash)
 		trainspawned = true
 		trainrunning = true
 	else
-		TriggerEvent("vorp:TipRight", "train is already out, check map!", 3000)
+		TriggerEvent('vorp:TipRight', 'train is already out, check map!', 3000)
 	end
-
 end
 
 Citizen.CreateThread(function()
@@ -192,25 +200,25 @@ Citizen.CreateThread(function()
 			for i = 1, #stops do
 				local coords = GetEntityCoords(CURRENT_TRAIN)
 				local trainV = vector3(coords.x, coords.y, coords.z)
-				local distance = #(vector3(stops[i]["x"], stops[i]["y"], stops[i]["z"]) - trainV)
+				local distance = #(vector3(stops[i]['x'], stops[i]['y'], stops[i]['z']) - trainV)
 
 				--speed--
 				local stopspeed = 0.0
 				local cruisespeed = 5.0
-				local fullspeed = 15.0
+				local fullspeed = Config.TrainFullspeed or 15.0
 
-				if distance < stops[i]["dst"] then
+				if distance < stops[i]['dst'] then
 					SetTrainCruiseSpeed(CURRENT_TRAIN, cruisespeed)
 					Wait(200)
-					if distance < stops[i]["dst2"] then
+					if distance < stops[i]['dst2'] then
 						SetTrainCruiseSpeed(CURRENT_TRAIN, stopspeed)
-						Wait(stops[i]["time"])
+						Wait(stops[i]['time'])
 						TriggerServerEvent('InteractSound_SV:PlayWithinDistance', 10, 'allaboard', 1.0)
 						Wait(10000)
 						SetTrainCruiseSpeed(CURRENT_TRAIN, cruisespeed)
 						Wait(10000)
 					end
-				elseif distance > stops[i]["dst"] then
+				elseif distance > stops[i]['dst'] then
 					SetTrainCruiseSpeed(CURRENT_TRAIN, fullspeed)
 					Wait(25)
 				end
@@ -219,34 +227,9 @@ Citizen.CreateThread(function()
 	end
 end)
 
-RegisterNetEvent("send:PlayerJob")
-AddEventHandler("send:PlayerJob", function(Job)
-	PlayerJob = Job
-
-end)
--- delete all
-AddEventHandler("onResourceStop", function(resourceName)
-	if resourceName == GetCurrentResourceName() then
-		if inmenu == true then
-			PromptDelete(openmenu) -- delete prompt
-			MenuData.CloseAll() --close menu
-		end
-
-		for _, v in pairs(npcs) do
-			DeleteEntity(v.npc)
-			DeletePed(v.npc)
-			SetEntityAsNoLongerNeeded(v.npc)
-		end
-
-		DeleteEntity(CURRENT_TRAIN) --delete train
-		trainspawned = false
-		trainrunning = false
-	end
-end)
-
 -- delete train
 RegisterCommand('deletetrain', function()
-	if PlayerJob == Config.Job then
+	if PlayerJob == Config.Job or not Config.Job then
 		DeleteEntity(CURRENT_TRAIN)
 		trainspawned = false
 		trainrunning = false
@@ -255,7 +238,7 @@ end)
 
 -- reset train
 RegisterCommand('resettrain', function()
-	if PlayerJob == Config.Job then
+	if PlayerJob == Config.Job or not Config.Job then
 		DeleteEntity(CURRENT_TRAIN)
 		trainspawned = false
 		trainrunning = false
@@ -265,4 +248,29 @@ RegisterCommand('resettrain', function()
 		Wait(1000)
 		DoScreenFadeIn(500)
 	end
+end)
+
+-- delete all
+AddEventHandler('onResourceStop', function(resource)
+	if (resource ~= GetCurrentResourceName()) then return end
+
+	if inmenu == true then
+		PromptDelete(openmenu) -- delete prompt
+		MenuData.CloseAll() --close menu
+	end
+
+	for _, v in pairs(npcs) do
+		DeleteEntity(v.npc)
+		DeletePed(v.npc)
+		SetEntityAsNoLongerNeeded(v.npc)
+	end
+
+	DeleteEntity(CURRENT_TRAIN) --delete train
+	trainspawned = false
+	trainrunning = false
+end)
+
+AddEventHandler('onClientResourceStart', function(resource)
+	if (resource ~= GetCurrentResourceName()) then return end
+	TriggerServerEvent('vorp_railroadjob:server:GetJob')
 end)

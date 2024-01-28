@@ -1,17 +1,27 @@
---######################### edit for VORP by: outsider ########################
+--######################### edit for VORP by: outsider & GttMone ########################
+
 local VORPcore = {}
-TriggerEvent("getCore", function(core)
+
+TriggerEvent('getCore', function(core)
     VORPcore = core
 end)
 
+-------------------- Job Handling --------------------
+AddEventHandler('vorp:SelectedCharacter', function(source, character)
+    local src = source
+    TriggerClientEvent('vorp_railroadjob:client:UpdateJob', src, character.job)
+end)
 
--------------------- GetJOB --------------------
-RegisterServerEvent('get:PlayerJob')
-AddEventHandler('get:PlayerJob', function()
-    local _source = source
-    local Character = VORPcore.getUser(_source).getUsedCharacter
-    local CharacterJob = Character.job
+AddEventHandler("vorp:playerJobChange", function(source, job)
+    local src = source
+    TriggerClientEvent('vorp_railroadjob:client:UpdateJob', src, job)
+end)
 
-    TriggerClientEvent('send:PlayerJob', _source, CharacterJob)
-
+RegisterNetEvent('vorp_railroadjob:server:GetJob', function()
+    local src = source
+    local user = VORPcore.getUser(source)
+    if not user then return end
+    
+    local job = user.getUsedCharacter.job
+    TriggerClientEvent('vorp_railroadjob:client:UpdateJob', src, job)
 end)
