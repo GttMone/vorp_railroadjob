@@ -204,7 +204,7 @@ Citizen.CreateThread(function()
 
 				--speed--
 				local stopspeed = 0.0
-				local cruisespeed = 5.0
+				local cruisespeed = Config.TrainCruiseSpeed or 5.0
 				local fullspeed = Config.TrainFullspeed or 15.0
 
 				if distance < stops[i]['dst'] then

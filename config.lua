@@ -22,7 +22,8 @@ Config = {
 	trainmodel14 = 0x0392C83A,
 }
 Config.Job = "police" -- This job can open the train menu. Set to 'false' to allow anyone to open the menu.
-Config.TrainFullspeed = 15
+Config.TrainFullspeed = 30
+Config.TrainCruiseSpeed = 5
 Config.Location = vector3(-162.8994, 638.43988, 114.03205) -- location of the menu
 
 --- train stations where the train stops
