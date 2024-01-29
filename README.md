@@ -4,7 +4,8 @@
 - onesync Ready
 # Server Game Build
 - https://docs.fivem.net/docs/server-manual/server-commands/#sv_enforcegamebuild-build
-- add to your server.cfg : sv_enforceGameBuild 1436
+- minimum server buid: 1436
+- add to your server.cfg if you're not using a higher build : sv_enforceGameBuild 1436
 
 # Description
 - become a part of the railroad as a conductor
@@ -15,7 +16,8 @@
 - use /command while in the drivers seat : /resettrain (this deletes the train and teleports your to valentine)
 
 # Dependencies
-- menuapi
+- vorp_core
+- vorp_menu
 
 # Installation
 - ensure the above dependancies are installed and started
